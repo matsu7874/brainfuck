@@ -14,7 +14,7 @@ pub struct SimpleInterpreter {
     program_cursor: usize,
     cells: Vec<u8>,
     program: Program,
-    input_stream: Option<String>,
+    input_stream: Option<Vec<u8>>,
     jump_table: HashMap<usize, usize>,
 }
 
@@ -29,8 +29,10 @@ impl SimpleInterpreter {
             jump_table: HashMap::new(),
         }
     }
-    pub fn setInputStream(&mut self, input_stream: String) {
-        self.input_stream = Some(input_stream);
+    pub fn set_input_stream(&mut self, input_stream: String) {
+        let mut v: Vec<u8> = input_stream.replace("\n", "").bytes().collect();
+        v.reverse();
+        self.input_stream = Some(v);
     }
     fn eval_increment_pointer(&mut self, _command: &Token) -> Result<usize, InterpreterError> {
         self.pointer += 1;
@@ -69,11 +71,20 @@ impl SimpleInterpreter {
         Ok(self.cells[self.pointer] as usize)
     }
     fn eval_input(&mut self, _command: &Token) -> Result<usize, InterpreterError> {
-        let mut buf = String::new();
-        std::io::stdin()
-            .read_line(&mut buf)
-            .expect("read_line error");
-        let value = buf.as_bytes()[0];
+        let value = if let Some(ref mut input) = self.input_stream {
+            if input.len() > 0 {
+                input.pop().unwrap()
+            } else {
+                // 改行の値
+                10
+            }
+        } else {
+            let mut buf = String::new();
+            std::io::stdin()
+                .read_line(&mut buf)
+                .expect("read_line error");
+            buf.as_bytes()[0]
+        };
         self.cells[self.pointer] = value;
         self.program_cursor += 1;
         Ok(self.cells[self.pointer] as usize)

@@ -37,7 +37,7 @@ fn main() {
     }
 
     let _output = matches.opt_str("o");
-    let _input = matches.opt_str("i");
+    let input = matches.opt_str("i");
     let script = if !matches.free.is_empty() {
         matches.free[0].clone()
     } else {
@@ -52,6 +52,13 @@ fn main() {
 
     let program = Lexer::lex(&p);
     let mut interpreter = SimpleInterpreter::new();
+    if let Some(input_path) = input {
+        let mut input_file = File::open(input_path).expect("File was not opened");
+        let mut buf = String::new();
+        let _ = input_file.read_to_string(&mut buf);
+        interpreter.set_input_stream(buf);
+    }
+
     if let Err(e) = interpreter.eval(&program) {
         println!("Error: {:?}", e);
     }
